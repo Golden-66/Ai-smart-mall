@@ -1,0 +1,13 @@
+{"question": "怎么进入 BIOS？", "modelNo": "LT-1001", "expected": ["F2"]}
+{"question": "这台笔记本最大可以扩展多少内存？", "modelNo": "LT-1001", "expected": ["64GB"]}
+{"question": "电池怎么保养比较好？", "modelNo": "LT-1001", "expected": ["80%"]}
+{"question": "笔记本保修多久？", "modelNo": "LT-1001", "expected": ["保修 2 年", "2 年"]}
+{"question": "支持多少瓦的快充？", "modelNo": "LT-1001", "expected": ["100W"]}
+{"question": "手机防水等级是多少？", "modelNo": "PH-1001", "expected": ["IP68"]}
+{"question": "手机支持无线充电吗，功率多少？", "modelNo": "PH-1001", "expected": ["50W"]}
+{"question": "怎么恢复出厂设置？", "modelNo": "PH-1001", "expected": ["清除所有数据"]}
+{"question": "夜景拍照需要保持多久不动？", "modelNo": "PH-1001", "expected": ["3 秒"]}
+{"question": "耳机怎么首次配对？", "modelNo": "HP-1001", "expected": ["长按充电盒按键 3 秒", "白灯闪烁"]}
+{"question": "耳机单次续航多久？", "modelNo": "HP-1001", "expected": ["8 小时"]}
+{"question": "耳机可以同时连几台设备？", "modelNo": "HP-1001", "expected": ["2 台"]}
+{"question": "耳机怎么重置？", "modelNo": "HP-1001", "expected": ["10 秒", "红灯闪烁"]}

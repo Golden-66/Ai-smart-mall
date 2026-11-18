@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+mall:
+  jwt:
+    # 至少 32 字节, 生产环境务必通过环境变量覆盖; 必须与 user-service 保持一致
+    secret: ${JWT_SECRET:ai-smart-mall-dev-secret-key-please-change-me-0123456789}

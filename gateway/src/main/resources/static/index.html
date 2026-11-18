@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 智能选购商城</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1f2329; --muted:#6b7280; --primary:#2563eb; --border:#e5e7eb; --ok:#16a34a; --bad:#dc2626; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--card); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:18px; margin:0; }
+  main { max-width:960px; margin:20px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+  button { background:var(--primary); color:#fff; border:0; border-radius:6px; padding:7px 14px; cursor:pointer; font-size:14px; }
+  button.ghost { background:#fff; color:var(--primary); border:1px solid var(--primary); }
+  button.danger { background:var(--bad); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  input, select { padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px; }
+  nav { display:flex; gap:8px; margin-bottom:16px; }
+  nav button { background:#fff; color:var(--text); border:1px solid var(--border); }
+  nav button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  #chatlog { height:440px; overflow-y:auto; background:#fafbfc; border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .msg { margin:8px 0; max-width:86%; padding:8px 12px; border-radius:10px; white-space:pre-wrap; word-break:break-word; }
+  .msg.user { background:var(--primary); color:#fff; margin-left:auto; }
+  .msg.bot { background:#fff; border:1px solid var(--border); }
+  .src { font-size:12px; color:var(--muted); border-top:1px dashed var(--border); margin-top:6px; padding-top:4px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
+  .item { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
+  .price { color:var(--bad); font-weight:600; }
+  .muted { color:var(--muted); font-size:12px; }
+  .tag { display:inline-block; background:#eef2ff; color:#3730a3; border-radius:4px; padding:0 6px; margin:2px 4px 2px 0; font-size:12px; }
+  .status { font-weight:600; }
+  .st-0 { color:#b45309; } .st-1 { color:var(--primary); } .st-2 { color:var(--ok); } .st-3 { color:var(--muted); }
+  .hint { font-size:12px; color:var(--muted); }
+  hr { border:0; border-top:1px solid var(--border); margin:14px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 AI 智能选购商城</h1>
+  <div id="userbox"></div>
+</header>
+<main>
+  <section id="auth" class="card">
+    <h3>登录 / 注册</h3>
+    <div class="row">
+      <input id="u" placeholder="用户名 (字母数字下划线 3-32 位)">
+      <input id="p" type="password" placeholder="密码 (至少 6 位)">
+      <button id="btnLogin">登录</button>
+      <button id="btnReg" class="ghost">注册</button>
+    </div>
+    <div class="hint">管理员账号 admin (默认密码见 .env 的 ADMIN_PASSWORD) 可上传商品说明书到知识库。</div>
+    <div id="authMsg" class="hint"></div>
+  </section>
+
+  <section id="app" hidden>
+    <nav id="tabs"></nav>
+
+    <div id="tab-chat" class="card">
+      <div id="chatlog"></div>
+      <div id="chatActions" class="row" style="margin-top:10px"></div>
+      <div class="row">
+        <input id="msg" style="flex:1;min-width:240px" placeholder="例如：预算 5000 左右，想买一台办公用的笔记本，内存 16G 以上">
+        <button id="btnSend">发送</button>
+        <button id="btnNew" class="ghost">新对话</button>
+      </div>
+      <div class="hint">可以试试：①“想买笔记本” → 系统会追问预算和用途；②“要第二个，买一台” → 生成订单草稿；③“LT-1001 怎么进入 BIOS？” → 知识库问答</div>
+    </div>
+
+    <div id="tab-products" class="card" hidden>
+      <div class="row">
+        <select id="fCategory"><option value="">全部品类</option><option>手机</option><option>笔记本</option><option>耳机</option><option>平板</option><option>智能手表</option></select>
+        <input id="fKeyword" placeholder="关键词/型号">
+        <input id="fMax" type="number" placeholder="最高价格">
+        <button id="btnSearch">搜索</button>
+      </div>
+      <div id="plist" class="grid"></div>
+    </div>
+
+    <div id="tab-orders" class="card" hidden>
+      <h3>购物车</h3>
+      <div id="cart"></div>
+      <hr>
+      <div class="row"><h3 style="margin:0">我的订单</h3><button id="btnRefresh" class="ghost">刷新</button></div>
+      <div id="orders"></div>
+    </div>
+
+    <div id="tab-admin" class="card" hidden>
+      <h3>上传商品说明书 (管理员)</h3>
+      <div class="row">
+        <input id="aModel" placeholder="商品型号, 如 LT-1001">
+        <input id="aFile" type="file" accept=".pdf,.md,.txt">
+        <button id="btnUpload">上传并入库</button>
+      </div>
+      <div id="adminMsg" class="hint"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { token: localStorage.getItem('token') || '', username: localStorage.getItem('username') || '', cid: '' };
+
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  });
+  children.flat().forEach(c => el.append(c instanceof Node ? c : document.createTextNode(c == null ? '' : String(c))));
+  return el;
+}
+const yuan = (v) => '¥' + Number(v).toLocaleString('zh-CN');
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {});
+  if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const res = await fetch(path, Object.assign({}, opts, { headers }));
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* ignore */ }
+  if (res.status === 401 && state.token) { logout(); throw new Error('登录已过期, 请重新登录'); }
+  if (!res.ok || (data && data.code !== 0)) throw new Error((data && data.message) || ('请求失败 ' + res.status));
+  return data.data;
+}
+
+// ------------------------------------------------------------ 认证
+function renderUser() {
+  const box = $('userbox'); box.replaceChildren();
+  if (state.token) box.append(h('span', {}, '👤 ' + state.username + '  '), h('button', { class: 'ghost', onclick: logout }, '退出'));
+  $('auth').hidden = !!state.token; $('app').hidden = !state.token;
+  if (state.token) { renderTabs(); showTab('chat'); }
+}
+function logout() { state.token = ''; state.username = ''; localStorage.clear(); state.cid = ''; renderUser(); }
+async function login(register) {
+  const body = JSON.stringify({ username: $('u').value.trim(), password: $('p').value });
+  try {
+    if (register) { await api('/api/users/register', { method: 'POST', body }); $('authMsg').textContent = '注册成功, 正在登录…'; }
+    const r = await api('/api/users/login', { method: 'POST', body });
+    state.token = r.token; state.username = r.username;
+    localStorage.setItem('token', r.token); localStorage.setItem('username', r.username);
+    $('authMsg').textContent = ''; renderUser();
+  } catch (e) { $('authMsg').textContent = '❌ ' + e.message; }
+}
+
+// ------------------------------------------------------------ 标签页
+const TABS = [['chat', '🤖 AI 导购'], ['products', '📦 商品'], ['orders', '🧾 购物车与订单']];
+function renderTabs() {
+  const tabs = TABS.slice(); if (state.username === 'admin') tabs.push(['admin', '📚 知识库管理']);
+  $('tabs').replaceChildren(...tabs.map(([id, label]) => h('button', { id: 'nav-' + id, onclick: () => showTab(id) }, label)));
+}
+function showTab(id) {
+  ['chat', 'products', 'orders', 'admin'].forEach(t => { const el = $('tab-' + t); if (el) el.hidden = (t !== id); const n = $('nav-' + t); if (n) n.classList.toggle('active', t === id); });
+  if (id === 'products') searchProducts();
+  if (id === 'orders') { loadCart(); loadOrders(); }
+  if (id === 'chat' && !$('chatlog').children.length) addBot('你好，我是 AI 导购助手。告诉我想买什么、预算和用途，我来帮你挑选；也可以直接问某个型号的使用问题。');
+}
+
+// ------------------------------------------------------------ AI 导购
+function addUser(text) { $('chatlog').append(h('div', { class: 'msg user' }, text)); scrollLog(); }
+function addBot(text, sources) {
+  const box = h('div', { class: 'msg bot' }, text);
+  (sources || []).forEach((s, i) => box.append(h('div', { class: 'src' }, '[' + (i + 1) + '] ' + s.modelNo + ' / ' + s.docName + ' (相似度 ' + (s.score == null ? '-' : Number(s.score).toFixed(2)) + ')')));
+  $('chatlog').append(box); scrollLog();
+}
+function scrollLog() { const l = $('chatlog'); l.scrollTop = l.scrollHeight; }
+function renderActions(reply) {
+  const box = $('chatActions'); box.replaceChildren();
+  if (reply.pendingOrder) {
+    box.append(h('button', { onclick: () => orderAction('confirm') }, '✅ 确认下单'), h('button', { class: 'danger', onclick: () => orderAction('cancel') }, '取消'));
+  } else if (reply.orderNo) {
+    box.append(h('button', { class: 'ghost', onclick: () => { showTab('orders'); } }, '去“我的订单”支付'));
+  }
+}
+async function send() {
+  const text = $('msg').value.trim(); if (!text) return;
+  $('msg').value = ''; addUser(text); $('btnSend').disabled = true;
+  try {
+    const r = await api('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message: text, conversationId: state.cid || null }) });
+    state.cid = r.conversationId; addBot(r.reply, r.sources); renderActions(r);
+  } catch (e) { addBot('❌ ' + e.message); }
+  $('btnSend').disabled = false;
+}
+async function orderAction(kind) {
+  try {
+    const r = await api('/api/ai/orders/' + kind, { method: 'POST', body: JSON.stringify({ conversationId: state.cid }) });
+    addBot(r.reply); renderActions(r);
+  } catch (e) { addBot('❌ ' + e.message); }
+}
+
+// ------------------------------------------------------------ 商品
+async function searchProducts() {
+  const q = new URLSearchParams({ size: 24 });
+  if ($('fCategory').value) q.set('category', $('fCategory').value);
+  if ($('fKeyword').value.trim()) q.set('keyword', $('fKeyword').value.trim());
+  if ($('fMax').value) q.set('maxPrice', $('fMax').value);
+  const list = $('plist'); list.replaceChildren();
+  try {
+    const r = await api('/api/products?' + q);
+    r.items.forEach(p => list.append(h('div', { class: 'item' },
+      h('div', {}, h('b', {}, p.name)), h('div', { class: 'muted' }, p.category + ' · ' + p.modelNo),
+      h('div', {}, (p.tags || '').split(',').filter(Boolean).map(t => h('span', { class: 'tag' }, t))),
+      h('div', { class: 'price' }, yuan(p.minPrice) + (p.maxPrice !== p.minPrice ? ' 起' : '')),
+      h('div', { class: 'muted' }, '库存合计 ' + p.totalStock),
+      h('button', { class: 'ghost', onclick: () => showSkus(p.id, list) }, '查看规格 / 加购'))));
+    if (!r.items.length) list.append(h('div', { class: 'muted' }, '没有符合条件的商品'));
+  } catch (e) { list.append(h('div', { class: 'muted' }, '❌ ' + e.message)); }
+}
+async function showSkus(id, container) {
+  try {
+    const d = await api('/api/products/' + id);
+    const box = h('div', { class: 'item', style: 'grid-column:1/-1' }, h('b', {}, d.product.name + ' 规格'),
+      h('div', { class: 'muted' }, Object.entries(d.product.specs || {}).map(([k, v]) => k + '：' + v).join('　')));
+    d.skus.forEach(s => box.append(h('div', { class: 'row' }, h('span', {}, s.skuName), h('span', { class: 'price' }, yuan(s.price)),
+      h('span', { class: 'muted' }, '库存 ' + s.stock), h('button', { onclick: () => addCart(s.skuId) }, '加入购物车'))));
+    container.prepend(box);
+  } catch (e) { alert(e.message); }
+}
+async function addCart(skuId) {
+  try { await api('/api/cart/items', { method: 'POST', body: JSON.stringify({ skuId, quantity: 1 }) }); alert('已加入购物车'); } catch (e) { alert(e.message); }
+}
+
+// ------------------------------------------------------------ 购物车 / 订单
+async function loadCart() {
+  const box = $('cart'); box.replaceChildren();
+  try {
+    const c = await api('/api/cart');
+    if (!c.items.length) { box.append(h('div', { class: 'muted' }, '购物车是空的')); return; }
+    c.items.forEach(i => box.append(h('div', { class: 'row' }, h('span', {}, i.productName + ' ' + i.skuName), h('span', { class: 'price' }, yuan(i.price) + ' × ' + i.quantity),
+      h('button', { class: 'ghost', onclick: async () => { await api('/api/cart/items/' + i.skuId, { method: 'DELETE' }); loadCart(); } }, '移除'))));
+    box.append(h('div', { class: 'row' }, h('b', {}, '合计 ' + yuan(c.totalAmount)), h('button', { onclick: checkout }, '结算')));
+  } catch (e) { box.append(h('div', { class: 'muted' }, '❌ ' + e.message)); }
+}
+async function checkout() {
+  try { await api('/api/cart/checkout', { method: 'POST', headers: { 'Idempotency-Key': (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random()) } }); loadCart(); setTimeout(loadOrders, 1200); } catch (e) { alert(e.message); }
+}
+async function loadOrders() {
+  const box = $('orders'); box.replaceChildren();
+  try {
+    const list = await api('/api/orders?size=10');
+    if (!list.length) { box.append(h('div', { class: 'muted' }, '暂无订单')); return; }
+    list.forEach(o => {
+      const card = h('div', { class: 'item', style: 'margin-bottom:8px' },
+        h('div', { class: 'row' }, h('b', {}, o.orderNo), h('span', { class: 'status st-' + o.status }, o.statusText), h('span', { class: 'price' }, yuan(o.totalAmount))),
+        h('div', { class: 'muted' }, o.items.map(i => i.productName + ' ' + i.skuName + ' × ' + i.quantity).join('；')),
+        o.cancelReason ? h('div', { class: 'muted' }, '取消原因：' + o.cancelReason) : '');
+      if (o.status === 1) card.append(h('div', { class: 'row' }, h('button', { onclick: () => pay(o.orderNo) }, '去支付'), h('button', { class: 'danger', onclick: () => cancelOrder(o.orderNo) }, '取消订单')));
+      if (o.status === 0) card.append(h('div', { class: 'muted' }, '库存锁定中, 请稍后点击刷新…'));
+      box.append(card);
+    });
+  } catch (e) { box.append(h('div', { class: 'muted' }, '❌ ' + e.message)); }
+}
+async function pay(no) { try { await api('/api/orders/' + no + '/pay', { method: 'POST' }); setTimeout(loadOrders, 1000); } catch (e) { alert(e.message); } }
+async function cancelOrder(no) { try { await api('/api/orders/' + no + '/cancel', { method: 'POST' }); loadOrders(); } catch (e) { alert(e.message); } }
+
+// ------------------------------------------------------------ 知识库管理
+async function upload() {
+  const file = $('aFile').files[0], model = $('aModel').value.trim();
+  if (!file || !model) { $('adminMsg').textContent = '请填写型号并选择文件'; return; }
+  const fd = new FormData(); fd.append('modelNo', model); fd.append('file', file);
+  $('adminMsg').textContent = '上传并向量化中…';
+  try { const r = await api('/api/ai/knowledge/documents', { method: 'POST', body: fd }); $('adminMsg').textContent = '✅ 入库完成：' + r.docName + '，共 ' + r.chunks + ' 个分块'; }
+  catch (e) { $('adminMsg').textContent = '❌ ' + e.message; }
+}
+
+$('btnLogin').onclick = () => login(false);
+$('btnReg').onclick = () => login(true);
+$('btnSend').onclick = send;
+$('msg').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+$('btnNew').onclick = () => { state.cid = ''; $('chatlog').replaceChildren(); $('chatActions').replaceChildren(); addBot('已开启新对话。'); };
+$('btnSearch').onclick = searchProducts;
+$('btnRefresh').onclick = () => { loadCart(); loadOrders(); };
+$('btnUpload').onclick = upload;
+renderUser();
+</script>
+</body>
+</html>

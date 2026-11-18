@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mall_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root123}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+mall:
+  jwt:
+    secret: ${JWT_SECRET:ai-smart-mall-dev-secret-key-please-change-me-0123456789}
+    ttl-seconds: 86400
+  admin:
+    password: ${ADMIN_PASSWORD:admin123}

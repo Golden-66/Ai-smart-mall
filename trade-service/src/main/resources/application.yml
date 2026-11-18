@@ -1,0 +1,47 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: trade-service
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mall_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root123}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+mall:
+  order:
+    # 订单支付超时时间(秒), 默认 30 分钟。演示时可通过环境变量调小 (修改后需删除 RabbitMQ 中的延迟队列)
+    timeout-seconds: ${ORDER_TIMEOUT_SECONDS:1800}

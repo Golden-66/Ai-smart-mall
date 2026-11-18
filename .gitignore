@@ -1,0 +1,10 @@
+target/
+.env
+volumes/
+data/
+.idea/
+*.iml
+.vscode/
+*.log
+__pycache__/
+.DS_Store

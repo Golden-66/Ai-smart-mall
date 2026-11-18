@@ -1,0 +1,63 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ai-service
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 10000
+  ai:
+    openai:
+      # 任意 OpenAI 兼容服务。默认使用阿里云百炼(通义千问)的兼容模式, 一个 key 同时提供对话与向量模型。
+      # DeepSeek 没有向量模型, 若对话用 DeepSeek 需要另配 embedding 服务。
+      base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+      api-key: ${AI_API_KEY:missing-api-key}
+      chat:
+        options:
+          model: ${AI_CHAT_MODEL:qwen-plus}
+          temperature: 0.2
+      embedding:
+        options:
+          model: ${AI_EMBEDDING_MODEL:text-embedding-v3}
+          dimensions: ${AI_EMBEDDING_DIM:1024}
+    vectorstore:
+      milvus:
+        client:
+          host: ${MILVUS_HOST:localhost}
+          port: ${MILVUS_PORT:19530}
+        database-name: default
+        collection-name: product_knowledge
+        embedding-dimension: ${AI_EMBEDDING_DIM:1024}
+        index-type: IVF_FLAT
+        metric-type: COSINE
+        initialize-schema: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+ai:
+  rag:
+    chunk-chars: 600
+    chunk-overlap: 80
+    embedding-batch-size: 10
+    similarity-threshold: 0.3
+    top-k: 5
